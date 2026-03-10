@@ -1,92 +1,86 @@
-# AI-Powered Log Mining Intelligence Platform
+# Log Mining Intelligence Platform
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-18+-61dafb.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-3178c6.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A Data Mining based Log Intelligence Platform that extracts patterns, detects anomalies, and reveals hidden insights from system logs through a visually stunning analytics dashboard.
+A full-stack log analytics platform that extracts patterns, detects anomalies, and clusters log entries using data mining algorithms. Features real-time log streaming via WebSocket, file upload ingestion, and a premium dark-themed dashboard.
 
-## 🎯 Project Vision
+## Features
 
-Build a professional-grade log analytics platform resembling **Splunk** or **Datadog** while remaining feasible for academic data mining projects.
+- **Pattern Mining** - FP-Growth algorithm discovers frequent event sequences across sessions
+- **Anomaly Detection** - Isolation Forest + volume spike + error rate detection with severity scoring
+- **Log Clustering** - TF-IDF vectorization + K-Means groups similar log entries by semantic similarity
+- **File Upload** - Ingest `.json`, `.csv`, `.log`, `.txt` files with automatic format detection
+- **Live Streaming** - WebSocket-based real-time log ingestion and display
+- **Instant Navigation** - In-memory caching layer eliminates loading delays between pages
+- **Real-time Dashboard** - Hourly activity charts, log distribution, metric cards with live data
 
-### Core Features
+## Tech Stack
 
-- 🔍 **Data Mining** — Pattern discovery, clustering, and anomaly detection
-- 🤖 **Machine Learning** — FP-Growth, K-Means, Isolation Forest algorithms
-- 📊 **Interactive Visualization** — Real-time analytics dashboard
-- 🎨 **Modern UI/UX** — Dark theme with glassmorphism design
+| Layer | Technologies |
+|-------|-------------|
+| **Backend** | Python 3.10+, FastAPI, SQLAlchemy 2.0, Pandas, Scikit-learn, mlxtend |
+| **Frontend** | React 18, TypeScript, TailwindCSS, Framer Motion, Recharts |
+| **Database** | PostgreSQL (Neon serverless) with asyncpg |
+| **Streaming** | WebSocket (native), webhook endpoint |
 
-## 🏗️ Architecture
-
-```
-Log Sources → Data Ingestion → Parsing → Preprocessing → Mining Engine → Database → API → Dashboard
-```
-
-**Layers:**
-1. Data Ingestion
-2. Data Processing
-3. Data Mining
-4. Visualization
-
-## 🛠️ Technology Stack
-
-### Backend
-- **Python 3.10+** with **FastAPI**
-- **Pandas**, **Scikit-learn**, **mlxtend**, **NumPy**
-- **Neon** (Serverless PostgreSQL)
-
-### Frontend
-- **React 18+** with **TypeScript**
-- **TailwindCSS** for styling
-- **Framer Motion** for animations
-- **Chart.js** / **Apache ECharts** for visualization
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 log-mining-platform/
 ├── backend/
 │   ├── app/
-│   │   ├── api/
-│   │   ├── services/
-│   │   ├── mining/
-│   │   ├── preprocessing/
-│   │   ├── models/
-│   │   └── database/
-│   └── utils/
+│   │   ├── api/              # FastAPI routes (logs, mining, dashboard)
+│   │   ├── mining/           # FP-Growth, K-Means, Isolation Forest
+│   │   ├── preprocessing/    # Parser, cleaner, session builder
+│   │   ├── services/         # Business logic layer
+│   │   ├── models/           # SQLAlchemy models + Pydantic schemas
+│   │   ├── database/         # Neon PostgreSQL connection
+│   │   ├── websocket.py      # WebSocket connection manager
+│   │   └── main.py           # FastAPI application
+│   ├── tests/                # Pytest test suite
+│   └── requirements.txt
 ├── frontend/
-│   ├── components/
-│   ├── pages/
-│   ├── services/
-│   ├── hooks/
-│   └── styles/
-├── docs/
-├── tests/
-└── .qwen/
+│   └── src/
+│       ├── components/       # Layout, UI component library
+│       ├── pages/            # Dashboard, LogExplorer, Patterns, Anomalies, Clusters, Sources
+│       ├── hooks/            # useCachedFetch for instant navigation
+│       ├── services/         # API client, types, WebSocket service
+│       └── styles/           # Premium dark glassmorphism theme
+├── data/
+│   ├── test_logs.json        # 152 comprehensive test logs
+│   └── sample_logs.json      # Basic sample dataset
+├── scripts/
+│   ├── live_log_generator.py # Sends logs to webhook for live testing
+│   ├── setup.sh              # Unix setup script
+│   └── setup.bat             # Windows setup script
+└── docs/
+    ├── ARCHITECTURE.md
+    └── GETTING_STARTED.md
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.10+
 - Node.js 18+
-- Neon database account
+- PostgreSQL database (Neon recommended)
 
-### Backend Setup
+### Backend
 
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+source venv/bin/activate    # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your Neon database URL
+cp .env.example .env        # Edit with your DATABASE_URL
 uvicorn app.main:app --reload
 ```
 
-### Frontend Setup
+### Frontend
 
 ```bash
 cd frontend
@@ -94,43 +88,71 @@ npm install
 npm run dev
 ```
 
-## 📊 Data Mining Algorithms
-
-| Algorithm | Purpose | Implementation |
-|-----------|---------|----------------|
-| FP-Growth | Frequent pattern mining | `backend/app/mining/pattern_mining.py` |
-| K-Means | Log clustering | `backend/app/mining/clustering.py` |
-| Isolation Forest | Anomaly detection | `backend/app/mining/anomaly_detection.py` |
-
-## 📖 Documentation
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Algorithms](docs/ALGORITHMS.md)
-- [API Reference](docs/API.md)
-- [Usage Guide](docs/USAGE.md)
-
-## 🧪 Testing
+### Load Test Data
 
 ```bash
-# Backend tests
-pytest
+# Upload the test dataset
+curl -X POST http://localhost:8000/api/v1/logs/upload \
+  -F "file=@data/test_logs.json"
 
-# Frontend tests
-npm test
+# Run all mining algorithms
+curl -X POST http://localhost:8000/api/v1/mining/patterns
+curl -X POST http://localhost:8000/api/v1/mining/clusters
+curl -X POST http://localhost:8000/api/v1/mining/anomalies
 ```
 
-## 📄 License
+### Live Log Generator
 
-MIT License — see [LICENSE](LICENSE) for details.
+```bash
+# Send continuous logs to the webhook endpoint
+python scripts/live_log_generator.py --interval 1 --batch-size 3
+```
 
-## 👥 Academic Project
+## API Endpoints
 
-This project is designed as an academic data mining project demonstrating:
-- Data mining algorithm implementation
-- Machine learning pipeline
-- Full-stack web development
-- Professional UI/UX design
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/v1/logs` | List logs with filtering, search, pagination |
+| `POST` | `/api/v1/logs` | Upload logs via JSON body |
+| `POST` | `/api/v1/logs/upload` | Upload log file (multipart) |
+| `POST` | `/api/v1/logs/webhook` | Webhook for external log sources |
+| `GET` | `/api/v1/sessions` | List all sessions |
+| `POST` | `/api/v1/mining/patterns` | Run FP-Growth pattern discovery |
+| `GET` | `/api/v1/patterns` | Get discovered patterns |
+| `POST` | `/api/v1/mining/clusters` | Run K-Means clustering |
+| `GET` | `/api/v1/clusters` | Get cluster results |
+| `POST` | `/api/v1/mining/anomalies` | Run anomaly detection |
+| `GET` | `/api/v1/anomalies` | Get detected anomalies |
+| `GET` | `/api/v1/dashboard/metrics` | Dashboard metrics + hourly activity |
+| `WS` | `/ws/logs` | WebSocket for live log streaming |
 
----
+Full API docs available at `http://localhost:8000/docs` when the backend is running.
 
-**Built with ❤️ using FastAPI, React, and Neon**
+## Data Mining Algorithms
+
+### Pattern Mining (FP-Growth)
+- Groups logs by session, extracts event types from messages via keyword matching
+- Creates one-hot encoded event sequences, mines frequent itemsets
+- Returns patterns with support, confidence, and frequency metrics
+
+### Clustering (TF-IDF + K-Means)
+- Vectorizes log messages using TF-IDF (unigrams + bigrams, 1000 max features)
+- Clusters using K-Means with configurable k (default 5, auto-detect via elbow method)
+- Extracts top keywords per cluster from TF-IDF centroids
+
+### Anomaly Detection
+- **Isolation Forest**: 6-feature extraction (level, message length, word count, error keywords, numbers, hour) with contamination-based scoring
+- **Volume Spike**: 5-minute window aggregation, flags buckets >3 standard deviations above mean
+- **Error Rate**: 10-minute windows, flags >30% error rate with severity scaling
+
+## Access Points
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| API Docs | http://localhost:8000/docs |
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.

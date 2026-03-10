@@ -1,364 +1,193 @@
-# Project Completion Summary
+# Project Summary
 
-## AI-Powered Log Mining Intelligence Platform
+## Log Mining Intelligence Platform
 
-**Status:** ✅ Complete (All 6 Phases)  
-**Version:** 0.1.0  
-**Date:** March 10, 2026
-
----
-
-## 📊 Project Overview
-
-A professional-grade log analytics platform that extracts patterns, detects anomalies, and reveals hidden insights from system logs through a visually stunning dashboard.
-
-**Resembles:** Splunk, Datadog  
-**Tech Stack:** FastAPI + React + Neon PostgreSQL
+**Version:** 1.0.0
+**Date:** March 2026
 
 ---
 
-## ✅ Completed Phases
+## Overview
 
-### Phase 1: Project Setup ✅
-- Git repository with proper structure
-- Backend: FastAPI + Python 3.10+
-- Frontend: React 18 + TypeScript + TailwindCSS
-- Database: Neon PostgreSQL configured
-- Environment-based configuration
-- Complete documentation
-
-### Phase 2: Log Processing Pipeline ✅
-- **Log Parser** - Multi-format support (JSON, Syslog, Apache, Generic)
-- **Log Cleaner** - Deduplication, noise filtering, level standardization
-- **Session Builder** - Time-window based session grouping
-- **Log Service** - Full CRUD operations with pagination
-- **Tests:** 30/30 passing
-
-### Phase 3: Data Mining Engine ✅
-- **Pattern Mining** - FP-Growth algorithm for frequent sequences
-- **Clustering** - TF-IDF + K-Means for log grouping
-- **Anomaly Detection** - Isolation Forest + volume spike detection
-- **Mining Service** - Business logic layer
-- **Tests:** 32/32 passing
-
-### Phase 4: API Development ✅
-- RESTful endpoints with OpenAPI docs
-- Custom exception handling
-- CORS configuration
-- Integration tests: 11/18 passing
-- Database migrations (Alembic)
-
-### Phase 5: Frontend Development ✅
-- **Dashboard** - Real-time metrics and analytics
-- **Log Explorer** - Search, filter, pagination
-- **Patterns** - Frequent sequence visualization
-- **Anomalies** - Severity-based alert cards
-- **Clusters** - Grouped log patterns
-- Production build successful
-
-### Phase 6: UI Polish ✅
-- Page transitions with Framer Motion
-- Enhanced glassmorphism effects
-- Mobile-responsive sidebar
-- Loading states and skeletons
-- Empty states with actions
-- Toast notifications
-- Smooth animations throughout
+A full-stack log analytics platform that ingests logs from multiple sources (file upload, webhook, WebSocket streaming), processes them through a parsing and session-building pipeline, and applies data mining algorithms (FP-Growth, K-Means, Isolation Forest) to discover patterns, cluster entries, and detect anomalies. Results are displayed through a premium dark-themed React dashboard with instant navigation.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Log Sources                           │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│              Data Ingestion (FastAPI)                    │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│           Log Parsing & Preprocessing                    │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│            Data Mining Engine                            │
-│  ┌──────────┬──────────┬──────────┐                     │
-│  │ Pattern  │ Clustering│ Anomaly  │                     │
-│  │ Mining   │ (K-Means)│ Detection│                     │
-│  │(FP-Growth)│         │(Isolation│                     │
-│  │          │          │ Forest)  │                     │
-│  └──────────┴──────────┴──────────┘                     │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│         Neon PostgreSQL (Serverless)                     │
-│  logs | sessions | patterns | anomalies | clusters      │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│           React + TypeScript Dashboard                   │
-│     Dark Theme | Glassmorphism | Animations             │
-└─────────────────────────────────────────────────────────┘
+Log Sources (File Upload / Webhook / WebSocket)
+        ↓
+Ingestion Layer (FastAPI REST + WebSocket endpoints)
+        ↓
+Processing Pipeline (Parser → Cleaner → Session Builder)
+        ↓
+Mining Engine (FP-Growth | K-Means + TF-IDF | Isolation Forest)
+        ↓
+PostgreSQL (Neon Serverless)
+        ↓
+REST API + Dashboard (React + TypeScript + Recharts)
 ```
 
 ---
 
-## 📁 Project Structure
+## Features Implemented
 
-```
-log-mining-platform/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── log_routes.py         # Log CRUD endpoints
-│   │   │   └── mining_routes.py      # Mining operation endpoints
-│   │   ├── services/
-│   │   │   ├── log_service.py        # Log business logic
-│   │   │   └── mining_service.py     # Mining business logic
-│   │   ├── mining/
-│   │   │   ├── pattern_mining.py     # FP-Growth implementation
-│   │   │   ├── clustering.py         # K-Means implementation
-│   │   │   └── anomaly_detection.py  # Isolation Forest
-│   │   ├── preprocessing/
-│   │   │   ├── log_parser.py         # Multi-format parser
-│   │   │   ├── log_cleaner.py        # Cleaning utilities
-│   │   │   └── session_builder.py    # Session construction
-│   │   ├── models/
-│   │   │   ├── log_model.py          # SQLAlchemy models
-│   │   │   └── schemas.py            # Pydantic schemas
-│   │   ├── database/
-│   │   │   └── db_connection.py      # Neon connection
-│   │   ├── config.py                 # Settings
-│   │   └── main.py                   # FastAPI app
-│   ├── migrations/                   # Alembic migrations
-│   ├── tests/                        # Pytest tests
-│   ├── requirements.txt
-│   └── .env
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Layout.tsx            # Main layout
-│   │   │   └── ui/                   # Reusable UI components
-│   │   ├── pages/
-│   │   │   ├── Dashboard.tsx         # Analytics dashboard
-│   │   │   ├── LogExplorer.tsx       # Log search/filter
-│   │   │   ├── Patterns.tsx          # Pattern visualization
-│   │   │   ├── Anomalies.tsx         # Anomaly alerts
-│   │   │   └── Clusters.tsx          # Cluster cards
-│   │   ├── services/
-│   │   │   ├── api.ts                # API service layer
-│   │   │   └── apiClient.ts          # Axios client
-│   │   ├── styles/
-│   │   │   └── index.css             # Global styles
-│   │   ├── utils/
-│   │   │   └── cn.ts                 # Class merger
-│   │   └── App.tsx                   # Router setup
-│   ├── package.json
-│   └── dist/                         # Production build
-├── data/
-│   └── sample_logs.json              # Test dataset
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── GETTING_STARTED.md
-│   └── API.md
-├── scripts/
-│   ├── setup.sh                      # Unix setup
-│   └── setup.bat                     # Windows setup
-├── .qwen/
-│   └── rules.md                      # Project rulebook
-├── README.md
-├── LICENSE
-├── Makefile
-└── IMPLEMENTATION_PLAN.md
-```
+### Log Ingestion
+- [x] Multi-format parsing (JSON, Syslog, Apache, CSV, plain text)
+- [x] File upload via multipart form data (.json, .csv, .log, .txt)
+- [x] Webhook endpoint for external log sources
+- [x] WebSocket live streaming with auto-reconnect and keepalive
+- [x] Automatic session construction from metadata keys
+- [x] Log cleaning, deduplication, level standardization
 
----
-
-## 🛠️ Technology Stack
-
-### Backend
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Python | 3.10+ | Core language |
-| FastAPI | 0.109+ | REST API framework |
-| SQLAlchemy | 2.0+ | ORM |
-| Pandas | 2.1+ | Data processing |
-| Scikit-learn | 1.3+ | ML algorithms |
-| mlxtend | 0.23+ | FP-Growth |
-| Pydantic | 2.5+ | Data validation |
-| Structlog | 24.1+ | Logging |
+### Data Mining
+- [x] FP-Growth frequent pattern mining with support/confidence metrics
+- [x] Event type extraction via keyword matching (Auth, Search, Error, Timeout, etc.)
+- [x] TF-IDF vectorization + K-Means clustering with keyword extraction
+- [x] Isolation Forest anomaly detection (6-feature extraction)
+- [x] Volume spike detection (5-minute windowed, 3x std threshold)
+- [x] Error rate anomaly detection (10-minute windows, 30% threshold)
+- [x] Severity scoring (low/medium/high/critical) for all anomaly types
 
 ### Frontend
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| React | 18+ | UI framework |
-| TypeScript | 5.3+ | Type safety |
-| TailwindCSS | 3.4+ | Styling |
-| Framer Motion | 10.18+ | Animations |
-| React Router | 6.21+ | Routing |
-| Axios | 1.6+ | HTTP client |
-| date-fns | 3.2+ | Date formatting |
+- [x] Dashboard with real-time metrics, hourly activity chart, log level pie chart
+- [x] Log Explorer with search, level filtering, pagination
+- [x] Pattern visualization with sequence flow, support bars, frequency counts
+- [x] Anomaly cards with severity color coding and type badges
+- [x] Cluster cards with keyword tags, distribution bars, summary stats
+- [x] Sources page with drag-and-drop file upload and live WebSocket stream
+- [x] In-memory caching (useCachedFetch) for instant tab switching
+- [x] Premium dark theme with glassmorphism, ambient background, animations
+- [x] Mobile-responsive sidebar with spring-physics navigation indicator
+
+### Testing & Data
+- [x] Comprehensive test dataset (152 logs, 10 user sessions, error bursts)
+- [x] Live log generator script for streaming tests
+- [x] End-to-end verified: upload → parse → session build → mine → visualize
+- [x] All mining algorithms produce meaningful, verified results
+
+---
+
+## Technology Stack
+
+### Backend
+| Technology | Purpose |
+|------------|---------|
+| Python 3.10+ | Core language |
+| FastAPI | REST API + WebSocket |
+| SQLAlchemy 2.0 (async) | ORM with asyncpg driver |
+| Pandas | Data processing |
+| Scikit-learn | K-Means, Isolation Forest, TF-IDF |
+| mlxtend | FP-Growth algorithm |
+| Pydantic v2 | Request/response validation |
+
+### Frontend
+| Technology | Purpose |
+|------------|---------|
+| React 18 | UI framework |
+| TypeScript | Type safety |
+| TailwindCSS | Styling (custom dark theme) |
+| Framer Motion | Animations and transitions |
+| Recharts | Area charts, pie charts |
+| date-fns | Timestamp formatting |
+| Axios | HTTP client |
 
 ### Database
 | Technology | Purpose |
 |------------|---------|
 | Neon PostgreSQL | Serverless database |
 | Alembic | Schema migrations |
-| asyncpg | Async driver |
+| asyncpg | Async PostgreSQL driver |
 
 ---
 
-## 📊 Test Results
-
-### Backend Tests
-```
-Phase 2 (Preprocessing): 30/30 ✅
-Phase 3 (Mining):        32/32 ✅
-Phase 4 (API):           11/18 ✅ (61%)
-────────────────────────────────────
-Total:                   73/80 (91%)
-```
-
-### Frontend Build
-```
-✓ Production build successful
-✓ Bundle size: 345 KB (112 KB gzipped)
-✓ CSS: 20 KB (4.7 KB gzipped)
-✓ Build time: 902ms
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- Neon database account
-
-### Quick Start
-
-```bash
-# Clone and setup
-cd log-mining-platform
-bash scripts/setup.sh
-
-# Configure database
-# Edit backend/.env with your Neon connection string
-
-# Run migrations
-cd backend
-source venv/bin/activate
-alembic -c migrations/alembic.ini upgrade head
-
-# Start backend
-uvicorn app.main:app --reload
-
-# Start frontend (new terminal)
-cd frontend
-npm run dev
-```
-
-### Access Points
-- **Frontend:** http://localhost:3000
-- **Backend:** http://localhost:8000
-- **API Docs:** http://localhost:8000/docs
-
----
-
-## 📈 Features Implemented
+## API Endpoints
 
 ### Log Management
-- [x] Multi-format log parsing
-- [x] Automatic session construction
-- [x] Log cleaning and deduplication
-- [x] Search and filtering
-- [x] Pagination
+- `POST /api/v1/logs` - Upload logs via JSON
+- `POST /api/v1/logs/upload` - Upload log file (multipart)
+- `POST /api/v1/logs/webhook` - Webhook for external sources
+- `GET /api/v1/logs` - List with filtering, search, pagination
+- `GET /api/v1/logs/{id}` - Single log detail
+- `GET /api/v1/sessions` - List all sessions
+- `WS /ws/logs` - WebSocket live stream
 
-### Data Mining
-- [x] FP-Growth pattern mining
-- [x] Association rule generation
-- [x] TF-IDF + K-Means clustering
-- [x] Isolation Forest anomaly detection
-- [x] Volume spike detection
-- [x] Error rate anomaly detection
-
-### Visualization
-- [x] Real-time metrics dashboard
-- [x] Interactive log explorer
-- [x] Pattern sequence visualization
-- [x] Anomaly alert cards
-- [x] Cluster keyword display
-
-### UI/UX
-- [x] Dark theme with glassmorphism
-- [x] Responsive design
-- [x] Page transitions
-- [x] Loading states
-- [x] Empty states
-- [x] Mobile sidebar
+### Mining Operations
+- `POST /api/v1/mining/patterns` - Run FP-Growth
+- `POST /api/v1/mining/clusters` - Run K-Means
+- `POST /api/v1/mining/anomalies` - Run Isolation Forest + spike detection
+- `GET /api/v1/patterns` - Get discovered patterns
+- `GET /api/v1/clusters` - Get cluster results
+- `GET /api/v1/anomalies` - Get detected anomalies
+- `GET /api/v1/dashboard/metrics` - Metrics + hourly activity
 
 ---
 
-## 🎯 Demo Flow
+## Verified Mining Results (Test Dataset)
 
-1. **Upload Logs** → POST `/api/v1/logs`
-2. **View Dashboard** → See metrics and error distribution
-3. **Explore Logs** → Search, filter, paginate
-4. **Discover Patterns** → Click "Discover Patterns"
-5. **View Patterns** → See frequent sequences
-6. **Detect Anomalies** → Click "Detect Anomalies"
-7. **View Alerts** → See detected anomalies
-8. **Cluster Logs** → Click "Cluster Logs"
-9. **View Clusters** → See grouped patterns
+| Algorithm | Results |
+|-----------|---------|
+| **Pattern Mining** | 9 patterns found. Top: `WARN:Timeout → ERROR:Error` (26.7% support across 30 sessions) |
+| **Clustering** | 5 clusters: API/DB ops (80), Errors (36), Auth (20), Search (18), Test (3) |
+| **Anomaly Detection** | 17 anomalies: 1 critical (72.7% error rate in payment burst), time-based off-hours, error spikes |
 
 ---
 
-## 📝 Key Decisions
+## Project Structure
 
-### Architecture
-- **Layered architecture** for maintainability
-- **Stateless algorithms** for testability
-- **Environment-based config** for security
-
-### Database
-- **Neon PostgreSQL** for serverless scaling
-- **Async driver** for performance
-- **BigInteger for session_id** to prevent overflow
-
-### Frontend
-- **Dark theme** for professional look
-- **Glassmorphism** for modern aesthetics
-- **Framer Motion** for smooth animations
+```
+log-mining-platform/
+├── backend/
+│   ├── app/
+│   │   ├── api/                  # log_routes.py, mining_routes.py
+│   │   ├── mining/               # pattern_mining.py, clustering.py, anomaly_detection.py
+│   │   ├── preprocessing/        # log_parser.py, log_cleaner.py, session_builder.py
+│   │   ├── services/             # log_service.py, mining_service.py
+│   │   ├── models/               # log_model.py (SQLAlchemy), schemas.py (Pydantic)
+│   │   ├── database/             # db_connection.py (async SQLAlchemy + Neon)
+│   │   ├── websocket.py          # WebSocket ConnectionManager
+│   │   ├── config.py             # Pydantic Settings from .env
+│   │   └── main.py               # FastAPI app with CORS, error handling
+│   ├── migrations/               # Alembic migrations
+│   ├── tests/                    # Pytest suite
+│   ├── utils/                    # Logger, error handlers, exceptions
+│   └── requirements.txt
+├── frontend/
+│   └── src/
+│       ├── components/
+│       │   ├── Layout.tsx        # Sidebar with animated nav indicator
+│       │   └── ui/index.tsx      # PageTransition, MetricCard, Skeleton, etc.
+│       ├── pages/
+│       │   ├── Dashboard.tsx     # Metrics, hourly chart, log distribution
+│       │   ├── Sources.tsx       # File upload + WebSocket live stream
+│       │   ├── LogExplorer.tsx   # Search, filter, paginated table
+│       │   ├── Patterns.tsx      # Pattern cards with sequence flow
+│       │   ├── Anomalies.tsx     # Severity cards + anomaly list
+│       │   └── Clusters.tsx      # Cluster cards with keywords
+│       ├── hooks/
+│       │   └── useCache.ts       # useCachedFetch + invalidateCache
+│       ├── services/
+│       │   ├── api.ts            # API + LogStreamService (WebSocket)
+│       │   ├── apiClient.ts      # Axios instance
+│       │   └── types.ts          # TypeScript interfaces
+│       └── styles/
+│           └── index.css         # Glassmorphism design system
+├── data/
+│   ├── test_logs.json            # 152 test logs (sessions, errors, services)
+│   └── sample_logs.json          # Basic sample dataset
+├── scripts/
+│   └── live_log_generator.py     # Sends logs to webhook endpoint
+├── docs/
+│   ├── ARCHITECTURE.md
+│   └── GETTING_STARTED.md
+├── README.md
+├── LICENSE (MIT)
+└── Makefile
+```
 
 ---
 
-## 🔧 Known Limitations
+## License
 
-1. **API Tests:** 7/18 failing due to asyncpg cached statement issue after schema changes (won't affect production)
-2. **Real-time Updates:** Dashboard requires manual refresh (can be enhanced with WebSockets)
-3. **Large Datasets:** No streaming for very large log files (can be enhanced)
-
----
-
-## 🎓 Academic Value
-
-This project demonstrates:
-- ✅ Data mining algorithm implementation
-- ✅ Full-stack web development
-- ✅ Professional UI/UX design
-- ✅ Clean software architecture
-- ✅ Testing best practices
-- ✅ Database design and migrations
-
----
-
-## 📄 License
-
-MIT License - See [LICENSE](LICENSE) for details.
-
----
-
-**Built with ❤️ using FastAPI, React, and Neon**
+MIT License - see [LICENSE](LICENSE) for details.

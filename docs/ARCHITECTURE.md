@@ -1,118 +1,108 @@
-# Architecture Documentation
+# Architecture
 
 ## System Overview
 
-The Log Mining Intelligence Platform follows a layered architecture pattern, separating concerns into distinct layers for maintainability and scalability.
-
-## Architecture Diagram
+The platform follows a layered architecture with clear separation between ingestion, processing, mining, storage, and presentation.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Log Sources                                 │
-│              (Web / System / Application Logs)                   │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                      Log Sources                              │
+│      File Upload (.json/.csv/.log/.txt)  |  Webhook API       │
+│      WebSocket Live Stream  |  REST API JSON Body             │
+└──────────────────────────────────────────────────────────────┘
                               │
                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Data Ingestion Layer                          │
-│              (API Endpoints, File Upload)                        │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                   Ingestion Layer (FastAPI)                    │
+│   POST /logs  |  POST /logs/upload  |  POST /logs/webhook     │
+│                  WS /ws/logs (live stream)                     │
+└──────────────────────────────────────────────────────────────┘
                               │
                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Log Parsing Engine                             │
-│         (Format Detection, Field Extraction)                     │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                   Processing Pipeline                         │
+│  ┌────────────┐  ┌────────────┐  ┌─────────────────┐        │
+│  │ Log Parser │→ │Log Cleaner │→ │ Session Builder  │        │
+│  │ (multi-fmt)│  │ (dedup,    │  │ (time-window,   │        │
+│  │            │  │  normalize)│  │  metadata keys)  │        │
+│  └────────────┘  └────────────┘  └─────────────────┘        │
+└──────────────────────────────────────────────────────────────┘
                               │
                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  Data Preprocessing                              │
-│        (Cleaning, Normalization, Session Building)               │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    Mining Engine                               │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────┐     │
+│  │   Pattern    │ │  Clustering  │ │Anomaly Detection │     │
+│  │   Mining     │ │  TF-IDF +    │ │ Isolation Forest │     │
+│  │  FP-Growth   │ │  K-Means     │ │ + Volume Spike   │     │
+│  │  (mlxtend)   │ │ (sklearn)    │ │ + Error Rate     │     │
+│  └──────────────┘ └──────────────┘ └──────────────────┘     │
+└──────────────────────────────────────────────────────────────┘
                               │
                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Data Mining Engine                             │
-│    ┌─────────────┬─────────────┬─────────────┐                  │
-│    │   Pattern   │  Clustering │   Anomaly   │                  │
-│    │   Mining    │  (K-Means)  │  Detection  │                  │
-│    │ (FP-Growth) │             │(Isolation   │                  │
-│    │             │             │   Forest)   │                  │
-│    └─────────────┴─────────────┴─────────────┘                  │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│              PostgreSQL (Neon Serverless)                      │
+│  ┌──────┐ ┌──────────┐ ┌────────┐ ┌─────────┐ ┌────────┐   │
+│  │ logs │ │ sessions │ │patterns│ │anomalies│ │clusters│   │
+│  └──────┘ └──────────┘ └────────┘ └─────────┘ └────────┘   │
+└──────────────────────────────────────────────────────────────┘
                               │
                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Data Storage                                   │
-│              (Neon - Serverless PostgreSQL)                      │
-│    ┌────────┬──────────┬─────────┬──────────┬─────────┐        │
-│    │  logs  │ sessions │ patterns│ anomalies│ clusters│        │
-│    └────────┴──────────┴─────────┴──────────┴─────────┘        │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│               REST API (FastAPI + Pydantic)                   │
+│    GET/POST /logs  |  /patterns  |  /anomalies  |  /clusters │
+│    GET /dashboard/metrics (hourly activity + totals)          │
+└──────────────────────────────────────────────────────────────┘
                               │
                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Analytics API Layer                            │
-│              (FastAPI REST Endpoints)                            │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Frontend Visualization Dashboard                    │
-│              (React + TypeScript + TailwindCSS)                  │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│            Frontend (React + TypeScript)                       │
+│  Dashboard | Log Explorer | Patterns | Anomalies | Clusters  │
+│  Sources (File Upload + Live WebSocket Stream)                │
+│  In-memory cache (useCachedFetch) for instant tab switching   │
+│  Dark theme | Glassmorphism | Framer Motion animations        │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-## Layer Responsibilities
+## Layer Details
 
-### 1. Data Ingestion Layer
-- Accept logs via REST API
-- Support file uploads (JSON, CSV)
-- Validate incoming data format
+### Ingestion Layer
+- **File Upload**: `POST /logs/upload` accepts multipart form data. Supports JSON arrays, CSV with auto-column mapping, and plain text (one log per line).
+- **JSON API**: `POST /logs` accepts `{"logs": [...]}` or single log objects.
+- **Webhook**: `POST /logs/webhook` for external services to push logs. Same format flexibility.
+- **WebSocket**: `WS /ws/logs` provides real-time streaming. Backend broadcasts new logs to all connected clients via `ConnectionManager`.
 
-### 2. Log Parsing Engine
-- Detect log format automatically
-- Extract timestamp, level, message, source
-- Parse structured metadata
+### Processing Pipeline
+1. **Log Parser** (`log_parser.py`): Auto-detects format (JSON, syslog, Apache, generic timestamp). Extracts timestamp, level, message, source. Supports field aliases (e.g., `@timestamp`, `msg`, `severity`).
+2. **Log Cleaner** (`log_cleaner.py`): Deduplication, noise filtering, level standardization (`WARNING→WARN`, `FATAL→CRITICAL`).
+3. **Session Builder** (`session_builder.py`): Groups logs by `metadata.session_id` > `metadata.user_id` > `metadata.request_id` > `source`. 30-minute timeout between session events.
 
-### 3. Data Preprocessing
-- Clean and normalize log data
-- Remove duplicates
-- Build sessions from related logs
-- Handle missing values
+### Mining Engine
+- **Pattern Mining**: Extracts event types from messages via keyword matching (login→Auth, search→Search, error→Error, timeout→Timeout, etc.). Groups by session, creates one-hot encoded sequences, runs FP-Growth.
+- **Clustering**: Combines `{level} {message} {source}` into feature text, TF-IDF with 1-2 ngrams (1000 max features), K-Means with configurable k.
+- **Anomaly Detection**: Three independent detectors run in parallel. Isolation Forest uses 6 features per log. Results are merged and stored with severity levels.
 
-### 4. Data Mining Engine
-- **Pattern Mining**: Discover frequent event sequences using FP-Growth
-- **Clustering**: Group similar logs using TF-IDF + K-Means
-- **Anomaly Detection**: Identify unusual patterns using Isolation Forest
+### Frontend Caching
+All pages use `useCachedFetch` hook that:
+- Returns cached data instantly on mount (no loading skeleton)
+- Fetches fresh data in background
+- Supports configurable TTL and dependency-based cache invalidation
+- Combined with removed `key={location.pathname}` from Layout, enables instant tab switching
 
-### 5. Data Storage
-- PostgreSQL via Neon (serverless)
-- Connection pooling for efficiency
-- Indexed queries for performance
+## Database Schema
 
-### 6. Analytics API Layer
-- RESTful endpoints for all operations
-- Pagination and filtering support
-- OpenAPI documentation
-
-### 7. Frontend Dashboard
-- Real-time analytics visualization
-- Interactive log exploration
-- Pattern and anomaly displays
-
-## Technology Flow
-
-```
-User Action → Frontend → API → Service → Mining/DB → Response
-     │                                              │
-     └──────────────────────────────────────────────┘
-```
+| Table | Key Columns |
+|-------|------------|
+| `logs` | id, timestamp, level, message, source, session_id (FK), metadata (JSONB) |
+| `sessions` | id, session_key (unique), start_time, end_time, event_count |
+| `patterns` | id, pattern_sequence (TEXT[]), support, confidence, frequency |
+| `anomalies` | id, anomaly_type, severity, description, detected_at, metadata (JSONB) |
+| `clusters` | id, cluster_name, centroid_vector (FLOAT[]), log_count, keywords (TEXT[]) |
 
 ## Design Principles
 
-1. **Separation of Concerns**: Each layer has a single responsibility
-2. **Loose Coupling**: Layers communicate through well-defined interfaces
-3. **Stateless Algorithms**: Mining functions are pure and testable
-4. **Environment Configuration**: No hardcoded values
-5. **Type Safety**: Full type hints in Python and TypeScript
+1. **Stateless algorithms** - Mining functions are pure, take lists of dicts, return results
+2. **Async throughout** - asyncpg + SQLAlchemy async for non-blocking DB operations
+3. **Service layer pattern** - LogService and MiningService encapsulate business logic
+4. **No component remounting** - Frontend preserves component state across navigation
+5. **Environment configuration** - All secrets and settings via `.env`

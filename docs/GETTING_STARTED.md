@@ -2,147 +2,150 @@
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-
 - **Python 3.10+** - [Download](https://www.python.org/downloads/)
 - **Node.js 18+** - [Download](https://nodejs.org/)
 - **Git** - [Download](https://git-scm.com/)
-- **Neon Database Account** - [Sign up](https://console.neon.tech)
+- **PostgreSQL database** - [Neon](https://console.neon.tech) (recommended, free tier available)
 
-## Quick Start
+## Setup
 
 ### 1. Clone the Repository
 
 ```bash
-cd /Users/arunkarthikm/Documents/log-mining-platform
+git clone https://github.com/arun-karthik-m/log-mining-platform.git
+cd log-mining-platform
 ```
 
-### 2. Run Setup Script
+### 2. Backend Setup
 
-**macOS/Linux:**
 ```bash
-bash scripts/setup.sh
-```
-
-**Windows:**
-```cmd
-scripts\setup.bat
+cd backend
+python -m venv venv
+source venv/bin/activate    # Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
 ### 3. Configure Database
 
-1. Go to [Neon Console](https://console.neon.tech)
-2. Create a new project
-3. Copy the connection string
-4. Update `backend/.env`:
-   ```
-   DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/log_mining?sslmode=require
-   ```
+1. Create a [Neon](https://console.neon.tech) project (or use any PostgreSQL instance)
+2. Copy the connection string
+3. Create `backend/.env` from the example:
+
+```bash
+cp .env.example .env
+```
+
+4. Edit `backend/.env` and set your `DATABASE_URL`:
+```
+DATABASE_URL=postgresql+asyncpg://user:password@ep-xxx.region.aws.neon.tech/dbname
+```
 
 ### 4. Run Database Migrations
 
 ```bash
 cd backend
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate
 alembic -c migrations/alembic.ini upgrade head
 ```
 
-### 5. Start Development Servers
+### 5. Start the Backend
 
-**Option A: Using Make (recommended)**
-```bash
-make dev
-```
-
-**Option B: Manual**
-
-Terminal 1 - Backend:
 ```bash
 cd backend
 source venv/bin/activate
 uvicorn app.main:app --reload
 ```
 
-Terminal 2 - Frontend:
+Backend will be available at http://localhost:8000
+
+### 6. Start the Frontend
+
+In a new terminal:
+
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
 
-## Access the Application
+Frontend will be available at http://localhost:3000
 
-- **Frontend Dashboard**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000/docs
-- **Alternative Docs**: http://localhost:8000/redoc
+## Load Test Data
 
-## Verify Installation
-
-### Backend Health Check
+Upload the included test dataset (152 logs with sessions, error bursts, and varied sources):
 
 ```bash
-curl http://localhost:8000/docs
+curl -X POST http://localhost:8000/api/v1/logs/upload \
+  -F "file=@data/test_logs.json"
 ```
 
-Should return the OpenAPI documentation.
-
-### Frontend Health Check
-
-Open http://localhost:3000 in your browser. You should see the dashboard.
-
-## Next Steps
-
-1. **Upload Sample Data**: Use the sample logs in `data/sample_logs.json`
-2. **Explore API**: Visit http://localhost:8000/docs
-3. **Run Mining**: Trigger pattern discovery via API
-4. **View Dashboard**: Check the frontend for visualizations
-
-## Common Commands
+Then run all mining algorithms:
 
 ```bash
-# Run tests
-make test
+# Discover patterns
+curl -X POST "http://localhost:8000/api/v1/mining/patterns?min_support=0.1"
 
-# Run linters
-make lint
+# Cluster logs
+curl -X POST "http://localhost:8000/api/v1/mining/clusters?n_clusters=5"
 
-# View all commands
-make help
+# Detect anomalies
+curl -X POST "http://localhost:8000/api/v1/mining/anomalies"
 ```
+
+Now open http://localhost:3000 to see the dashboard with real data.
+
+## Test Live Streaming
+
+Install `requests` if not already available, then run the log generator:
+
+```bash
+pip install requests
+python scripts/live_log_generator.py --interval 1 --batch-size 3
+```
+
+Open the **Sources** page in the frontend and click **Connect** to see logs appear in real-time via WebSocket.
+
+## Access Points
+
+| Service | URL |
+|---------|-----|
+| Frontend Dashboard | http://localhost:3000 |
+| Backend API | http://localhost:8000 |
+| API Documentation (Swagger) | http://localhost:8000/docs |
+| API Documentation (ReDoc) | http://localhost:8000/redoc |
+
+## Using the Platform
+
+1. **Dashboard** - Overview with metric cards, hourly activity chart (real data), log level distribution pie chart
+2. **Sources** - Upload log files (drag & drop) or connect to live WebSocket stream
+3. **Log Explorer** - Search, filter by level, paginate through all log entries
+4. **Patterns** - Click "Discover Patterns" to run FP-Growth, view frequent event sequences with support metrics
+5. **Anomalies** - Click "Run Detection" to run Isolation Forest + volume/error rate detection, view severity-coded results
+6. **Clusters** - Click "Run Clustering" to group logs by semantic similarity, view keyword tags and distribution
 
 ## Troubleshooting
 
-### Port Already in Use
+### Port already in use
+```bash
+# Kill process on port 8000
+kill $(lsof -ti:8000)
+```
 
-If port 8000 or 3000 is in use:
+### Database connection failed
+- Verify your `DATABASE_URL` in `backend/.env`
+- Ensure the connection string uses `postgresql+asyncpg://` prefix
+- Check network connectivity to Neon
 
-**Backend**: Edit `backend/.env` and change `PORT`
-**Frontend**: Edit `frontend/vite.config.ts` and change `port`
-
-### Database Connection Failed
-
-1. Verify your Neon connection string
-2. Check network connectivity
-3. Ensure SSL mode is set to `require`
-
-### Module Not Found
-
-**Backend**:
+### Module not found (backend)
 ```bash
 cd backend
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Frontend**:
+### Module not found (frontend)
 ```bash
 cd frontend
-rm -rf node_modules package-lock.json
+rm -rf node_modules
 npm install
 ```
-
-## Getting Help
-
-- Check the [Architecture](ARCHITECTURE.md) documentation
-- Review the [API Guide](API.md)
-- Open an issue on the repository
