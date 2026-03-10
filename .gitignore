@@ -52,6 +52,9 @@ frontend/.next/
 .env.local
 .env.*.local
 
+# Alembic configuration (may contain sensitive data)
+backend/migrations/alembic.ini
+
 # Logs
 *.log
 logs/
