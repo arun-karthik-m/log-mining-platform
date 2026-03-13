@@ -4,7 +4,7 @@ import {
   Boxes, Loader2, Layers, Tag, Hash,
   Network, CircleDot,
 } from 'lucide-react'
-import { miningService } from '@services/api'
+import { miningService, dashboardService } from '@services/api'
 import type { Cluster } from '@services/types'
 import {
   PageTransition, StaggerContainer, StaggerItem,
@@ -12,23 +12,39 @@ import {
 } from '@components/ui'
 import { useCachedFetch, invalidateCache } from '@hooks/useCache'
 
-const clusterGradients = [
-  { from: 'from-accent/10', to: 'to-violet-500/5', accent: 'text-accent', border: 'border-accent/10', glow: 'hover:shadow-glow-sm', dot: 'bg-accent' },
-  { from: 'from-violet-500/10', to: 'to-pink-500/5', accent: 'text-violet-400', border: 'border-violet-500/10', glow: 'hover:shadow-glow-violet', dot: 'bg-violet-400' },
-  { from: 'from-emerald/10', to: 'to-teal-500/5', accent: 'text-emerald-400', border: 'border-emerald/10', glow: 'hover:shadow-glow-emerald', dot: 'bg-emerald-400' },
-  { from: 'from-warning/10', to: 'to-orange-500/5', accent: 'text-warning-400', border: 'border-warning/10', glow: '', dot: 'bg-warning-400' },
-  { from: 'from-danger/10', to: 'to-rose-500/5', accent: 'text-danger-400', border: 'border-danger/10', glow: 'hover:shadow-glow-danger', dot: 'bg-danger-400' },
-  { from: 'from-sky-500/10', to: 'to-blue-500/5', accent: 'text-sky-400', border: 'border-sky-500/10', glow: '', dot: 'bg-sky-400' },
-]
-
 export function Clusters() {
   const [clustering, setClustering] = useState(false)
+
+  // Check if logs exist first
+  const { data: metrics } = useCachedFetch(
+    'clusters-metrics-check',
+    () => dashboardService.getMetrics(),
+    { ttl: 600000 }, // 10 minutes
+  )
 
   const { data: clusters, loading, refetch } = useCachedFetch<Cluster[]>(
     'clusters',
     () => miningService.getClusters(),
-    { ttl: 60000 },
+    { ttl: 600000 }, // 10 minutes
   )
+
+  // Show empty state if no logs uploaded
+  if (metrics && metrics.total_logs === 0) {
+    return (
+      <PageTransition>
+        <EmptyState
+          icon={<Boxes size={48} className="text-zinc-600" />}
+          title="No logs uploaded"
+          description="Upload log files first to cluster similar entries in your data."
+          action={
+            <a href="/" className="px-6 py-2.5 bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors inline-block">
+              Upload Logs
+            </a>
+          }
+        />
+      </PageTransition>
+    )
+  }
 
   const handleCluster = async () => {
     setClustering(true)
@@ -46,6 +62,24 @@ export function Clusters() {
   const items = clusters || []
   const totalLogs = items.reduce((sum, c) => sum + c.log_count, 0)
 
+  // Show empty state if no clusters and not loading
+  if (!loading && items.length === 0) {
+    return (
+      <PageTransition>
+        <EmptyState
+          icon={<Boxes size={48} className="text-zinc-600" />}
+          title="No Clusters Yet"
+          description="Run clustering to group similar log entries by semantic similarity."
+          action={
+            <button onClick={handleCluster} className="px-6 py-2.5 bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors">
+              Run Clustering
+            </button>
+          }
+        />
+      </PageTransition>
+    )
+  }
+
   return (
     <PageTransition>
       <div className="space-y-6">
@@ -54,112 +88,73 @@ export function Clusters() {
           subtitle="Similar log entries grouped by semantic similarity"
           badge={
             items.length > 0 ? (
-              <span className="badge badge-accent font-mono">{items.length} clusters</span>
+              <span className="px-2 py-1 rounded-md bg-white/10 border border-zinc-800 text-xs font-mono text-white">{items.length} clusters</span>
             ) : undefined
           }
           action={
             <button
               onClick={handleCluster}
               disabled={clustering}
-              className="btn-primary flex items-center gap-2"
+              className="px-4 py-2 bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               {clustering ? (
                 <>
-                  <Loader2 size={15} className="animate-spin relative z-10" />
-                  <span className="relative z-10">Clustering...</span>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Clustering...</span>
                 </>
               ) : (
                 <>
-                  <Network size={15} className="relative z-10" />
-                  <span className="relative z-10">Run Clustering</span>
+                  <Network size={15} />
+                  <span>Run Clustering</span>
                 </>
               )}
             </button>
           }
         />
 
-        {/* Summary */}
+        {/* Summary Cards */}
         {items.length > 0 && (
           <motion.div
-            className="glass-card p-5 flex items-center justify-between"
+            className="grid grid-cols-2 md:grid-cols-3 gap-4"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <div className="flex items-center gap-6">
-              <div>
-                <p className="text-[0.65rem] text-zinc-600 uppercase tracking-wider mb-0.5">Clusters</p>
-                <p className="text-xl font-bold text-white font-mono">{items.length}</p>
-              </div>
-              <div className="w-px h-8 bg-white/[0.04]" />
-              <div>
-                <p className="text-[0.65rem] text-zinc-600 uppercase tracking-wider mb-0.5">Total Logs</p>
-                <AnimatedCounter value={totalLogs} className="text-xl font-bold text-white font-mono" />
-              </div>
-              <div className="w-px h-8 bg-white/[0.04]" />
-              <div>
-                <p className="text-[0.65rem] text-zinc-600 uppercase tracking-wider mb-0.5">Avg per Cluster</p>
-                <p className="text-xl font-bold text-white font-mono">
-                  {items.length > 0 ? Math.round(totalLogs / items.length).toLocaleString() : 0}
-                </p>
-              </div>
-            </div>
-
-            {/* Mini distribution */}
-            <div className="hidden md:flex items-center gap-0.5 h-6">
-              {items.map((cluster, i) => {
-                const ratio = totalLogs > 0 ? cluster.log_count / totalLogs : 0
-                const grad = clusterGradients[i % clusterGradients.length]
-                return (
-                  <motion.div
-                    key={cluster.id}
-                    className={`h-full rounded-sm ${grad.dot}`}
-                    style={{ opacity: 0.6 }}
-                    initial={{ width: 0 }}
-                    animate={{ width: Math.max(4, ratio * 200) }}
-                    transition={{ delay: 0.2 + i * 0.05, duration: 0.5 }}
-                  />
-                )
-              })}
-            </div>
+            <SummaryCard
+              icon={<Layers size={18} />}
+              label="Total Clusters"
+              value={items.length}
+            />
+            <SummaryCard
+              icon={<Hash size={18} />}
+              label="Total Logs"
+              value={totalLogs}
+            />
+            <SummaryCard
+              icon={<CircleDot size={18} />}
+              label="Avg Size"
+              value={Math.round(totalLogs / items.length)}
+            />
           </motion.div>
         )}
 
-        {/* Clusters Grid */}
         {loading && !clusters ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="glass-card p-6">
-                <div className="skeleton h-5 w-32 mb-3" />
-                <div className="skeleton h-3 w-20 mb-4" />
-                <div className="flex gap-2">
-                  <div className="skeleton h-6 w-16 rounded-md" />
-                  <div className="skeleton h-6 w-14 rounded-md" />
-                  <div className="skeleton h-6 w-18 rounded-md" />
+              <div key={i} className="border border-zinc-800 p-6">
+                <div className="flex gap-2 mb-3">
+                  <div className="h-7 w-20 rounded-full bg-zinc-800" />
+                  <div className="h-7 w-4 rounded-full bg-zinc-800" />
                 </div>
+                <div className="h-4 w-full bg-zinc-800 mb-2" />
+                <div className="h-4 w-2/3 bg-zinc-800" />
               </div>
             ))}
           </div>
-        ) : items.length === 0 ? (
-          <EmptyState
-            icon={<Boxes size={48} />}
-            title="No Clusters Created"
-            description='Click "Run Clustering" to group similar log entries together'
-            action={
-              <button onClick={handleCluster} className="btn-primary">
-                <span className="relative z-10">Start Clustering</span>
-              </button>
-            }
-          />
         ) : (
-          <StaggerContainer
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"
-            staggerDelay={0.06}
-          >
+          <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 gap-4" staggerDelay={0.04}>
             {items.map((cluster, index) => (
-              <StaggerItem key={cluster.id}>
-                <ClusterCard cluster={cluster} index={index} totalLogs={totalLogs} />
-              </StaggerItem>
+              <ClusterCard key={cluster.id || index} cluster={cluster} index={index} />
             ))}
           </StaggerContainer>
         )}
@@ -168,84 +163,68 @@ export function Clusters() {
   )
 }
 
-function ClusterCard({
-  cluster,
-  index,
-  totalLogs,
-}: {
-  cluster: Cluster
-  index: number
-  totalLogs: number
+function SummaryCard({ icon, label, value }: {
+  icon: React.ReactNode
+  label: string
+  value: number
 }) {
-  const grad = clusterGradients[index % clusterGradients.length]
-  const percentage = totalLogs > 0 ? (cluster.log_count / totalLogs * 100) : 0
+  return (
+    <div className="border border-zinc-800 p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-zinc-600">{icon}</div>
+      </div>
+      <p className="text-zinc-500 text-xs font-light mb-1">{label}</p>
+      <p className="text-2xl font-light text-white">
+        <AnimatedCounter value={value} />
+      </p>
+    </div>
+  )
+}
 
+function ClusterCard({ cluster, index }: { cluster: Cluster; index: number }) {
   return (
     <motion.div
-      className={`glass-card p-6 bg-gradient-to-br ${grad.from} ${grad.to} ${grad.glow} group`}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="border border-zinc-800 p-6 hover:border-zinc-700 transition-colors"
     >
-      {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className={`w-2.5 h-2.5 rounded-full ${grad.dot}`} />
-          <h3 className="text-sm font-semibold text-white">{cluster.cluster_name}</h3>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 border border-zinc-700 rounded-lg flex items-center justify-center">
+            <span className="text-sm font-mono text-white">{index + 1}</span>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-white">{cluster.cluster_name || `Cluster ${index + 1}`}</h3>
+            <p className="text-xs text-zinc-500">{cluster.log_count} logs</p>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 badge badge-zinc">
-          <Layers size={10} />
-          <span className="font-mono">{cluster.log_count.toLocaleString()}</span>
-        </div>
-      </div>
-
-      {/* Percentage bar */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between text-[0.65rem] mb-1.5">
-          <span className="text-zinc-500">Distribution</span>
-          <span className={`${grad.accent} font-mono font-medium`}>{percentage.toFixed(1)}%</span>
-        </div>
-        <div className="w-full h-1 rounded-full bg-white/[0.03] overflow-hidden">
-          <motion.div
-            className={`h-full rounded-full ${grad.dot}`}
-            style={{ opacity: 0.7 }}
-            initial={{ width: 0 }}
-            animate={{ width: `${percentage}%` }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          />
+        <div className="flex items-center gap-1 text-xs text-zinc-500">
+          <Tag size={12} />
+          <span>{cluster.keywords?.length || 0} keywords</span>
         </div>
       </div>
 
-      {/* Keywords */}
       {cluster.keywords && cluster.keywords.length > 0 && (
-        <div>
-          <div className="flex items-center gap-1.5 mb-2">
-            <Tag size={11} className="text-zinc-600" />
-            <span className="text-[0.65rem] text-zinc-500 uppercase tracking-wider">Keywords</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {cluster.keywords.slice(0, 6).map((keyword, i) => (
-              <span
-                key={i}
-                className="px-2 py-0.5 rounded-md bg-white/[0.03] border border-white/[0.04] text-[0.7rem] text-zinc-400"
-              >
-                {keyword}
-              </span>
-            ))}
-            {cluster.keywords.length > 6 && (
-              <span className="px-2 py-0.5 text-[0.7rem] text-zinc-600">
-                +{cluster.keywords.length - 6}
-              </span>
-            )}
-          </div>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {cluster.keywords.slice(0, 5).map((keyword: string, i: number) => (
+            <span
+              key={i}
+              className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-mono text-zinc-400"
+            >
+              {keyword}
+            </span>
+          ))}
         </div>
       )}
 
-      {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-white/[0.03] flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Hash size={11} className="text-zinc-700" />
-          <span className="text-[0.65rem] text-zinc-600 font-mono">ID {cluster.id}</span>
+      <div className="flex items-center gap-2 text-xs text-zinc-600">
+        <div className="flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-white"
+            style={{ width: `${Math.min((cluster.log_count / 100) * 100, 100)}%` }}
+          />
         </div>
-        <CircleDot size={12} className={`${grad.accent} opacity-40`} />
       </div>
     </motion.div>
   )

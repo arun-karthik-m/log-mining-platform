@@ -26,13 +26,13 @@ export function useCachedFetch<T>(
   key: string,
   fetcher: () => Promise<T>,
   options?: {
-    /** Time-to-live in ms before cached data is considered stale (default: 60s) */
+    /** Time-to-live in ms before cached data is considered stale (default: 10 minutes) */
     ttl?: number
     /** Dependencies that invalidate the cache when changed */
     deps?: unknown[]
   },
 ): UseCachedFetchResult<T> {
-  const ttl = options?.ttl ?? 60000
+  const ttl = options?.ttl ?? 600000 // 10 minutes default
   const deps = options?.deps ?? []
 
   // Build a compound key from the base key + deps
@@ -110,4 +110,11 @@ export function invalidateCache(keyOrPrefix?: string) {
       cache.delete(k)
     }
   }
+}
+
+/**
+ * Clear all cached data. Call this when user uploads a new file or logs out.
+ */
+export function clearAllCache() {
+  cache.clear()
 }

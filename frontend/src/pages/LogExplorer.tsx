@@ -25,7 +25,7 @@ export function LogExplorer() {
       page,
       limit,
     }),
-    { ttl: 30000, deps: [levelFilter, searchQuery, page] },
+    { ttl: 600000, deps: [levelFilter, searchQuery, page] }, // 10 minutes cache
   )
 
   const logs = data?.logs || []
@@ -34,20 +34,38 @@ export function LogExplorer() {
 
   const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL']
 
+  // Show empty state if no logs (not loading)
+  if (!loading && total === 0) {
+    return (
+      <PageTransition>
+        <EmptyState
+          icon={<MessageSquare size={48} className="text-zinc-600" />}
+          title="No logs uploaded"
+          description="Upload log files to start exploring and analyzing your data."
+          action={
+            <a href="/" className="px-6 py-2.5 bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors inline-block">
+              Upload Logs
+            </a>
+          }
+        />
+      </PageTransition>
+    )
+  }
+
   return (
     <PageTransition>
       <div className="space-y-6">
         <SectionHeader
-          title="Log Explorer"
-          subtitle="Search, filter, and analyze your log entries"
+          title="Logs"
+          subtitle="Search, filter, and explore your log entries"
           badge={
-            <span className="badge badge-zinc font-mono">{total.toLocaleString()} entries</span>
+            <span className="px-2 py-1 rounded-md bg-white/10 border border-zinc-800 text-xs font-mono text-white">{total.toLocaleString()} entries</span>
           }
         />
 
         {/* Search & Filters */}
         <motion.div
-          className="glass-card p-4"
+          className="border border-zinc-800 p-4"
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -64,7 +82,7 @@ export function LogExplorer() {
                 placeholder="Search log messages..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setPage(1) }}
-                className="glass-input w-full pl-10 pr-4 py-2.5 text-sm"
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-black border border-zinc-800 text-white placeholder-zinc-600 focus:border-zinc-600 focus:outline-none transition-colors"
               />
             </div>
 
@@ -77,167 +95,100 @@ export function LogExplorer() {
               <select
                 value={levelFilter}
                 onChange={(e) => { setLevelFilter(e.target.value); setPage(1) }}
-                className="glass-input pl-8 pr-8 py-2.5 text-sm appearance-none cursor-pointer min-w-[140px]"
+                className="pl-8 pr-8 py-2.5 text-sm bg-black border border-zinc-800 text-white appearance-none cursor-pointer min-w-[140px] focus:border-zinc-600 focus:outline-none transition-colors"
               >
                 <option value="">All Levels</option>
-                {levels.map((l) => (
-                  <option key={l} value={l}>{l}</option>
+                {levels.map((level) => (
+                  <option key={level} value={level}>{level}</option>
                 ))}
               </select>
             </div>
-          </div>
 
-          {/* Active Filters */}
-          {(levelFilter || searchQuery) && (
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.03]">
-              <span className="text-[0.65rem] text-zinc-600 uppercase tracking-wider">Active:</span>
-              {levelFilter && (
-                <button
-                  onClick={() => setLevelFilter('')}
-                  className="badge badge-accent text-[0.6rem] cursor-pointer hover:opacity-80 transition-opacity"
-                >
-                  {levelFilter} &times;
-                </button>
-              )}
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="badge badge-violet text-[0.6rem] cursor-pointer hover:opacity-80 transition-opacity"
-                >
-                  "{searchQuery}" &times;
-                </button>
-              )}
-            </div>
-          )}
+            {/* Clear Filters */}
+            {(levelFilter || searchQuery) && (
+              <button
+                onClick={() => { setLevelFilter(''); setSearchQuery(''); setPage(1) }}
+                className="px-4 py-2.5 text-xs text-zinc-500 hover:text-white transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </motion.div>
 
-        {/* Logs Table */}
+        {/* Log Table */}
         {loading && !data ? (
-          <TableSkeleton rows={8} />
+          <TableSkeleton rows={limit} />
         ) : logs.length === 0 ? (
           <EmptyState
-            icon={<Layers size={48} />}
-            title="No Logs Found"
+            icon={<Search size={48} className="text-zinc-600" />}
+            title="No logs found"
             description={searchQuery || levelFilter
-              ? 'Try adjusting your search or filters'
-              : 'No log entries available yet'}
+              ? "Try adjusting your search or filters"
+              : "No logs match your criteria"}
+            action={
+              (searchQuery || levelFilter) && (
+                <button
+                  onClick={() => { setLevelFilter(''); setSearchQuery(''); setPage(1) }}
+                  className="px-6 py-2.5 bg-white text-black text-sm font-medium hover:bg-zinc-200 transition-colors"
+                >
+                  Clear all filters
+                </button>
+              )
+            }
           />
         ) : (
           <motion.div
-            className="glass-card overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15 }}
+            className="border border-zinc-800 overflow-hidden"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
           >
             <div className="overflow-x-auto">
-              <table className="premium-table">
+              <table className="w-full">
                 <thead>
-                  <tr>
-                    <th>
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={11} />
-                        Timestamp
-                      </div>
-                    </th>
-                    <th>Level</th>
-                    <th>
-                      <div className="flex items-center gap-1.5">
-                        <Server size={11} />
-                        Source
-                      </div>
-                    </th>
-                    <th>
-                      <div className="flex items-center gap-1.5">
-                        <MessageSquare size={11} />
-                        Message
-                      </div>
-                    </th>
+                  <tr className="border-b border-zinc-800">
+                    <th className="text-left text-xs font-mono text-zinc-500 uppercase tracking-wider px-4 py-3">Timestamp</th>
+                    <th className="text-left text-xs font-mono text-zinc-500 uppercase tracking-wider px-4 py-3">Level</th>
+                    <th className="text-left text-xs font-mono text-zinc-500 uppercase tracking-wider px-4 py-3">Source</th>
+                    <th className="text-left text-xs font-mono text-zinc-500 uppercase tracking-wider px-4 py-3">Message</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map((log) => (
-                    <tr key={log.id}>
-                      <td className="whitespace-nowrap font-mono text-[0.78rem] text-zinc-500">
-                        {format(new Date(log.timestamp), 'MMM d, HH:mm:ss')}
-                      </td>
-                      <td>
-                        <LevelBadge level={log.level} />
-                      </td>
-                      <td className="text-zinc-400 font-mono text-[0.78rem]">
-                        {log.source || <span className="text-zinc-700">-</span>}
-                      </td>
-                      <td className="max-w-md">
-                        <span className="text-zinc-300 text-[0.82rem] line-clamp-1">
-                          {log.message}
-                        </span>
-                      </td>
-                    </tr>
+                  {logs.map((log, index) => (
+                    <LogRow key={log.id || index} log={log} index={index} />
                   ))}
                 </tbody>
               </table>
             </div>
-          </motion.div>
-        )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <motion.div
-            className="flex items-center justify-between"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-          >
-            <p className="text-xs text-zinc-600">
-              Page {page} of {totalPages}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="btn-ghost flex items-center gap-1.5 text-xs disabled:opacity-30"
-              >
-                <ChevronLeft size={14} />
-                Previous
-              </button>
-
-              {/* Page numbers */}
-              <div className="hidden sm:flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum: number
-                  if (totalPages <= 5) {
-                    pageNum = i + 1
-                  } else if (page <= 3) {
-                    pageNum = i + 1
-                  } else if (page >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i
-                  } else {
-                    pageNum = page - 2 + i
-                  }
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setPage(pageNum)}
-                      className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
-                        page === pageNum
-                          ? 'bg-accent/10 text-accent border border-accent/20'
-                          : 'text-zinc-500 hover:text-white hover:bg-white/[0.03]'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  )
-                })}
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="border-t border-zinc-800 px-4 py-3 flex items-center justify-between">
+                <p className="text-xs text-zinc-500">
+                  Showing <span className="font-mono text-white">{(page - 1) * limit + 1}</span> to <span className="font-mono text-white">{Math.min(page * limit, total)}</span> of <span className="font-mono text-white">{total.toLocaleString()}</span> logs
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="p-2 border border-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed hover:border-zinc-600 transition-colors"
+                  >
+                    <ChevronLeft size={16} className="text-white" />
+                  </button>
+                  <span className="text-xs font-mono text-zinc-500 px-2">
+                    Page <span className="text-white">{page}</span> of <span className="text-white">{totalPages}</span>
+                  </span>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="p-2 border border-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed hover:border-zinc-600 transition-colors"
+                  >
+                    <ChevronRight size={16} className="text-white" />
+                  </button>
+                </div>
               </div>
-
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="btn-ghost flex items-center gap-1.5 text-xs disabled:opacity-30"
-              >
-                Next
-                <ChevronRight size={14} />
-              </button>
-            </div>
+            )}
           </motion.div>
         )}
       </div>
@@ -245,19 +196,52 @@ export function LogExplorer() {
   )
 }
 
+function LogRow({ log, index }: { log: Log; index: number }) {
+  return (
+    <motion.tr
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.02 }}
+      className="border-b border-zinc-800/50 hover:bg-white/[0.02] transition-colors"
+    >
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
+          <Clock size={12} />
+          {log.timestamp ? format(new Date(log.timestamp), 'MMM d, HH:mm:ss') : '-'}
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <LevelBadge level={log.level} />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2 text-xs">
+          <Server size={12} className="text-zinc-600" />
+          <span className="text-zinc-400">{log.source || <span className="text-zinc-700">-</span>}</span>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-start gap-2 text-sm">
+          <MessageSquare size={14} className="text-zinc-600 mt-0.5" />
+          <span className="text-zinc-300 font-light">{log.message}</span>
+        </div>
+      </td>
+    </motion.tr>
+  )
+}
+
 function LevelBadge({ level }: { level: string }) {
   const styles: Record<string, string> = {
-    DEBUG: 'badge-zinc',
-    INFO: 'badge-accent',
-    WARN: 'badge-warning',
-    ERROR: 'badge-danger',
-    CRITICAL: 'badge-danger',
+    DEBUG: 'bg-zinc-900 border-zinc-700 text-zinc-500',
+    INFO: 'bg-zinc-900 border-zinc-600 text-zinc-300',
+    WARN: 'bg-zinc-900 border-zinc-500 text-zinc-100',
+    ERROR: 'bg-white/10 border-white text-white',
+    CRITICAL: 'bg-white border-white text-black font-medium',
   }
 
   return (
-    <span className={`badge ${styles[level] || 'badge-zinc'}`}>
+    <span className={`px-2 py-1 rounded text-[10px] font-mono uppercase tracking-wider border ${styles[level] || styles.DEBUG}`}>
       {level === 'CRITICAL' && (
-        <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
+        <span className="inline-block w-1.5 h-1.5 bg-black rounded-full mr-1 animate-pulse" />
       )}
       {level}
     </span>

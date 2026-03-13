@@ -6,7 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-3178c6.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A full-stack log analytics platform that extracts patterns, detects anomalies, and clusters log entries using data mining algorithms. Features real-time log streaming via WebSocket, file upload ingestion, and a premium dark-themed dashboard.
+A full-stack log analytics platform that extracts patterns, detects anomalies, and clusters log entries using data mining algorithms. Upload your log files and get instant insights with a premium dark-themed dashboard.
 
 ## Features
 
@@ -14,7 +14,6 @@ A full-stack log analytics platform that extracts patterns, detects anomalies, a
 - **Anomaly Detection** - Isolation Forest + volume spike + error rate detection with severity scoring
 - **Log Clustering** - TF-IDF vectorization + K-Means groups similar log entries by semantic similarity
 - **File Upload** - Ingest `.json`, `.csv`, `.log`, `.txt` files with automatic format detection
-- **Live Streaming** - WebSocket-based real-time log ingestion and display
 - **Instant Navigation** - In-memory caching layer eliminates loading delays between pages
 - **Real-time Dashboard** - Hourly activity charts, log distribution, metric cards with live data
 
@@ -25,7 +24,6 @@ A full-stack log analytics platform that extracts patterns, detects anomalies, a
 | **Backend** | Python 3.10+, FastAPI, SQLAlchemy 2.0, Pandas, Scikit-learn, mlxtend |
 | **Frontend** | React 18, TypeScript, TailwindCSS, Framer Motion, Recharts |
 | **Database** | PostgreSQL (Neon serverless) with asyncpg |
-| **Streaming** | WebSocket (native), webhook endpoint |
 
 ## Project Structure
 
@@ -39,22 +37,20 @@ log-mining-platform/
 │   │   ├── services/         # Business logic layer
 │   │   ├── models/           # SQLAlchemy models + Pydantic schemas
 │   │   ├── database/         # Neon PostgreSQL connection
-│   │   ├── websocket.py      # WebSocket connection manager
 │   │   └── main.py           # FastAPI application
 │   ├── tests/                # Pytest test suite
 │   └── requirements.txt
 ├── frontend/
 │   └── src/
 │       ├── components/       # Layout, UI component library
-│       ├── pages/            # Dashboard, LogExplorer, Patterns, Anomalies, Clusters, Sources
+│       ├── pages/            # Upload, Dashboard, LogExplorer, Patterns, Anomalies, Clusters
 │       ├── hooks/            # useCachedFetch for instant navigation
-│       ├── services/         # API client, types, WebSocket service
+│       ├── services/         # API client, types
 │       └── styles/           # Premium dark glassmorphism theme
 ├── data/
 │   ├── test_logs.json        # 152 comprehensive test logs
 │   └── sample_logs.json      # Basic sample dataset
 ├── scripts/
-│   ├── live_log_generator.py # Sends logs to webhook for live testing
 │   ├── setup.sh              # Unix setup script
 │   └── setup.bat             # Windows setup script
 └── docs/
@@ -91,7 +87,7 @@ npm run dev
 ### Load Test Data
 
 ```bash
-# Upload the test dataset
+# Upload the test dataset via the UI or API
 curl -X POST http://localhost:8000/api/v1/logs/upload \
   -F "file=@data/test_logs.json"
 
@@ -99,13 +95,6 @@ curl -X POST http://localhost:8000/api/v1/logs/upload \
 curl -X POST http://localhost:8000/api/v1/mining/patterns
 curl -X POST http://localhost:8000/api/v1/mining/clusters
 curl -X POST http://localhost:8000/api/v1/mining/anomalies
-```
-
-### Live Log Generator
-
-```bash
-# Send continuous logs to the webhook endpoint
-python scripts/live_log_generator.py --interval 1 --batch-size 3
 ```
 
 ## API Endpoints
@@ -124,7 +113,6 @@ python scripts/live_log_generator.py --interval 1 --batch-size 3
 | `POST` | `/api/v1/mining/anomalies` | Run anomaly detection |
 | `GET` | `/api/v1/anomalies` | Get detected anomalies |
 | `GET` | `/api/v1/dashboard/metrics` | Dashboard metrics + hourly activity |
-| `WS` | `/ws/logs` | WebSocket for live log streaming |
 
 Full API docs available at `http://localhost:8000/docs` when the backend is running.
 

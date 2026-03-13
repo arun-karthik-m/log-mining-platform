@@ -11,15 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.db_connection import get_db_session
 from app.models.schemas import (
-    LogCreate,
     LogList,
     LogResponse,
     SessionResponse,
     UploadResponse,
 )
-from app.preprocessing.log_parser import parse_json_log, parse_log_line
 from app.services.log_service import LogService
-from app.websocket import ws_manager
 from utils.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -94,12 +91,6 @@ async def upload_logs_json(
 
     count = await service.ingest_logs(logs_data)
 
-    # Broadcast to WebSocket clients
-    if ws_manager.active_connections:
-        for log_data in logs_data[:100]:  # Cap broadcast to avoid flooding
-            if isinstance(log_data, dict):
-                await ws_manager.broadcast_log(log_data)
-
     return UploadResponse(count=count, success=True)
 
 
@@ -147,11 +138,6 @@ async def upload_log_file(
 
     count = await service.ingest_logs(logs_data)
 
-    # Broadcast to WebSocket clients
-    if ws_manager.active_connections:
-        for log_data in logs_data[:100]:
-            await ws_manager.broadcast_log(log_data)
-
     return UploadResponse(count=count, success=True)
 
 
@@ -173,12 +159,6 @@ async def webhook_ingest(
         logs_data = [body]
 
     count = await service.ingest_logs(logs_data)
-
-    # Broadcast to WebSocket clients in real-time
-    if ws_manager.active_connections:
-        for log_data in logs_data:
-            if isinstance(log_data, dict):
-                await ws_manager.broadcast_log(log_data)
 
     return UploadResponse(count=count, success=True)
 

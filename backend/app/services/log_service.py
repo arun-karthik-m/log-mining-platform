@@ -13,7 +13,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.log_model import Log, Session
-from app.models.schemas import LogCreate
 from app.preprocessing.log_cleaner import clean_logs, validate_log_entry
 from app.preprocessing.log_parser import parse_log_line
 from app.preprocessing.session_builder import build_sessions
@@ -104,7 +103,7 @@ class LogService:
         return log_count
 
     async def _save_sessions(self, sessions: list[dict[str, Any]]) -> tuple[int, dict[str, int]]:
-        """Save sessions to database.
+        """Save sessions to database with upsert handling.
 
         Args:
             sessions: List of session dictionaries.
@@ -115,30 +114,40 @@ class LogService:
         if not sessions:
             return 0, {}
 
-        saved_count = 0
-        key_to_id: dict[str, int] = {}
-        session_objects: list[Session] = []
+        from sqlalchemy.dialects.postgresql import insert
         
+        key_to_id: dict[str, int] = {}
+        
+        # Prepare session data for bulk insert
+        session_data_list = []
         for session_data in sessions:
-            # Don't set ID manually - let PostgreSQL auto-generate it
-            session = Session(
-                session_key=session_data["session_key"],
-                start_time=session_data["start_time"],
-                end_time=session_data.get("end_time"),
-                event_count=session_data.get("event_count", 0),
-            )
-            self.db.add(session)
-            session_objects.append(session)
-            saved_count += 1
+            session_data_list.append({
+                "session_key": session_data["session_key"],
+                "start_time": session_data["start_time"],
+                "end_time": session_data.get("end_time"),
+                "event_count": session_data.get("event_count", 0),
+            })
+        
+        # Use PostgreSQL INSERT ... ON CONFLICT DO UPDATE
+        stmt = insert(Session.__table__).values(session_data_list)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["session_key"],
+            set_={
+                "start_time": stmt.excluded.start_time,
+                "end_time": stmt.excluded.end_time,
+                "event_count": stmt.excluded.event_count,
+            }
+        )
+        stmt = stmt.returning(Session.__table__.c.session_key, Session.__table__.c.id)
+        
+        result = await self.db.execute(stmt)
+        
+        for row in result.all():
+            key_to_id[row.session_key] = row.id
 
-        # Flush to get generated IDs
         await self.db.flush()
         
-        # Build mapping of session_key to generated ID from session objects
-        for i, session in enumerate(session_objects):
-            key_to_id[sessions[i]["session_key"]] = session.id
-
-        return saved_count, key_to_id
+        return len(session_data_list), key_to_id
 
     async def _save_logs(self, logs: list[dict[str, Any]]) -> int:
         """Save logs to database.
