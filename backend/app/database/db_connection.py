@@ -65,6 +65,10 @@ class DatabaseConnection:
         elif is_postgresql:
             # PostgreSQL with SSL support for Neon
             # Disable prepared statement cache to avoid issues after schema changes
+            # Use SSL only for remote connections (Neon), not for localhost
+            is_localhost = "localhost" in db_url or "127.0.0.1" in db_url
+            ssl_config = {} if is_localhost else {"ssl": "require"}
+            
             self._engine = create_async_engine(
                 db_url,
                 pool_size=self._settings.db_pool_size,
@@ -72,7 +76,7 @@ class DatabaseConnection:
                 pool_pre_ping=True,
                 echo=self._settings.debug,
                 connect_args={
-                    "ssl": "require",
+                    **ssl_config,
                     "prepared_statement_cache_size": 0,
                 },
             )
